@@ -6,15 +6,33 @@ public with sharing class TaskTriggerHandler {
     }
 
     public static void handleActivitiesBeforeUpdate(List<Task> newTasks) {
+        //Allow updating the Task record only if the parent Contact’s Account has the Modify Task Permission checked
+        List<Id> contactIds = new List<Id>();
         for(Task taskRec : newTasks) {
-            taskRec.Description = 'Task created via '+taskRec.Subject;
+            if(taskRec.WhoId != null && String.valueOf(taskRec.WhoId).startsWith('003')) {
+                contactIds.add(taskRec.WhoId);
+            }
+        }
+        if(contactIds.size() > 0) {
+            Map<Id, Boolean> contactCheckBoxMap = new Map<Id, Boolean>();
+            for(Contact con : [SELECT ID, Account.Modify_Task_Permission__c from Contact where ID in :contactIds] ) {
+                contactCheckBoxMap.put(con.Id, (Boolean)con.Account.Modify_Task_Permission__c);
+            }
+
+            if(contactCheckBoxMap.size() > 0) {
+                for(task taskRec : newTasks) {
+                    if(!contactCheckBoxMap.get(taskRec.WhoId)) {
+                        taskRec.addError('Cannot modify as you dont have required permission');
+                    }
+                }
+            }
         }
     }
 
     public static void handleActivitiesAfterInsert(List<Task> newTasks) {
         Map<Id, Integer> contactCountMap = new Map<Id, Integer>();
         for(Task taskRec : newTasks) {
-            if(String.valueOf(taskRec.WhoId).startsWith('003')) {
+            if(taskRec.WhoId != null && String.valueOf(taskRec.WhoId).startsWith('003')) {
                 if(contactCountMap.containsKey(taskRec.WhoId)) {
                     contactCountMap.put(taskRec.WhoId, contactCountMap.get(taskRec.WhoId)+1);
                 }else{

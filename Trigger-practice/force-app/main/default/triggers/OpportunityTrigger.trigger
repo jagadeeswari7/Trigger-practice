@@ -10,8 +10,9 @@ trigger OpportunityTrigger on Opportunity (before update, after update) {
         when AFTER_UPDATE {
             // Whenever an Opportunity is Closed Won, 
             // create a Task for the Opportunity Owner to split revenue among the team with high priority
-            OpportunityTriggerHandler.handleActivitiesAfterUpdate(Trigger.new, Trigger.oldMap);
+            //OpportunityTriggerHandler.handleActivitiesAfterUpdate(Trigger.new, Trigger.oldMap);
             OpportunityTriggerHandler.addOppTeamMembers(Trigger.new, Trigger.oldMap);
+            OpportunityTriggerHandler.notifyAllWhenClosedWon(Trigger.new, Trigger.oldMap);
         }
     }
 }

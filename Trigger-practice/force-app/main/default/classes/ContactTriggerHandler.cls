@@ -9,6 +9,7 @@ public with sharing class ContactTriggerHandler {
     }
 
     public static void handleAfterInsertActivities(List<Contact> newContacts) {
+        // public group
         Id conInnoPublicGroupId = [SELECT ID FROM Group WHERE Name = 'Contact Trigger Innovators' LIMIT 1].Id;
         List<ContactShare> conShareList = new List<ContactShare>();
         for(Contact conRec : newContacts) {
@@ -17,6 +18,7 @@ public with sharing class ContactTriggerHandler {
             conS.ContactAccessLevel = 'Edit';
             conS.RowCause = 'Manual';
             conS.UserOrGroupId = conInnoPublicGroupId;
+            // Add all the contacts to the public group once it is inserted
             conShareList.add(conS);
         }
 

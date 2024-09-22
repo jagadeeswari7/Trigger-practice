@@ -23,6 +23,7 @@ public with sharing class AccountTriggerHandler {
         }
 
         if(!accountIds.isEmpty()) {
+            callAsyncApex(accountIds);
             List<Contact> contactList = new List<Contact>();
             for(Contact contactRec : [SELECT Id, AccountId, Website__c FROM Contact WHERE AccountId IN :accountIds]) {
                 // update the website field on all its child contacts
@@ -34,5 +35,31 @@ public with sharing class AccountTriggerHandler {
                 update contactList;
             }
         }
+    }
+
+    public static void handleActivitiesAfterUndelete(List<Account> restoredRecords){
+        List<Account> restoredAccounts = new List<Account>();
+        for(Account acc : [SELECT Name from Account where id IN :restoredRecords]){
+            acc.Name = 'Restored '+acc.Name;
+            restoredAccounts.add(acc);
+        }
+
+        if(restoredAccounts.size() > 0){
+            update restoredAccounts;
+        }
+    }
+
+    @future
+    public static void callAsyncApex(Set<Id> accountIds){
+        List<Contact> contactList = new List<Contact>();
+            for(Contact contactRec : [SELECT Id, AccountId, Website__c FROM Contact WHERE AccountId IN :accountIds]) {
+                // update the website field on all its child contacts
+                contactRec.LeadSource = 'Web';
+                contactList.add(contactRec);
+            }
+
+            if(!contactList.isEmpty()) {
+                update contactList;
+            }
     }
 }

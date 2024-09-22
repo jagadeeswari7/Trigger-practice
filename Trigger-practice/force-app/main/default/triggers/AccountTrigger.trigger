@@ -1,4 +1,4 @@
-trigger AccountTrigger on Account (before update, after update) {
+trigger AccountTrigger on Account (before update, after update, after undelete) {
 
     // If an Account with Industry Agriculture and Type Prospect is updated and 
     // Ownership is set to Private, 
@@ -11,5 +11,11 @@ trigger AccountTrigger on Account (before update, after update) {
     // update the website field on all its child contacts
     if(Trigger.isAfter && Trigger.isUpdate) {
         AccountTriggerHandler.handleActivitiesAfterUpdate(Trigger.new, Trigger.oldMap, Trigger.newMap);
+    }
+
+    // When an account record is restored from the bin,
+    // update its name, prefix it with “Restored” keyword
+    if(Trigger.isAfter && Trigger.isUndelete){
+        AccountTriggerHandler.handleActivitiesAfterUndelete(Trigger.new);
     }
 }

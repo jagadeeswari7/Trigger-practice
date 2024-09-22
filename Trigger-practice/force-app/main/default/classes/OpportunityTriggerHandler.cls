@@ -12,7 +12,6 @@ public with sharing class OpportunityTriggerHandler {
     public static void handleActivitiesAfterUpdate(List<Opportunity> newRecords, Map<Id, Opportunity> oldOpportunitiesMap) {
         List<Task> tasksToInsert = new List<Task>();
         Set<Id> opportunityIds = new Set<Id>();
-
         for(Opportunity opp : newRecords) {
             if(opp.StageName == 'Closed Won' && oldOpportunitiesMap.get(opp.Id).StageName != 'Closed Won') {
                 // Create a Task for the Opportunity Owner
@@ -61,5 +60,41 @@ public with sharing class OpportunityTriggerHandler {
         if(oppTeamMembersToInsert.size() > 0) {
             insert oppTeamMembersToInsert;
         }
+    }
+
+    public static void notifyAllWhenClosedWon(List<Opportunity> newRecords, Map<Id, Opportunity> oldOpportunitiesMap) {
+        Set<Id> opportunityIds = new Set<Id>();
+        Set<String> listOfUsersToNotify = new Set<String>();
+        // If an Opportunity is Closed Won, send email to opportunity owner, account owner & team members, people from the public group
+        for(Opportunity opp : newRecords) {
+            if(opp.StageName == 'Closed Won' && oldOpportunitiesMap.get(opp.Id).StageName != 'Closed Won') {
+                opportunityIds.add(opp.Id);
+                listOfUsersToNotify.add(opp.OwnerId);
+                listOfUsersToNotify.add(opp.Account.OwnerId);
+            }
+        }
+
+        if(opportunityIds.size() > 0){
+            for(OpportunityTeamMember oppTeamMem : [select UserId from OpportunityTeamMember where OpportunityID in :opportunityIds]){
+                listOfUsersToNotify.add(oppTeamMem.UserId);
+            }
+
+            for(GroupMember groupMems : [SELECT Id, UserOrGroupId FROM GroupMember WHERE Group.name = 'Opportunity MegaStars']) {
+                listOfUsersToNotify.add(groupMems.UserOrGroupId);
+            }
+        }
+        List<String> emailAddressesList = new List<String>();
+        List<User> userRecords = [select email from user where id in :listOfUsersToNotify];
+        if(userRecords.size() > 0) {
+            // send email
+            for(User userRec : userRecords){
+                emailAddressesList.add(userRec.Email);
+            }
+        }
+
+        if(emailAddressesList.size() > 0){
+            ContactTriggerHelper.sendEmailToAccountOwner(emailAddressesList);
+        }
+        
     }
 }
